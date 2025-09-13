@@ -77,7 +77,7 @@ export function ConfigPanel({ config, onConfigChange, session }: ConfigPanelProp
                 variant="outline"
                 size="icon"
                 onClick={generateSessionId}
-                className="bg-muted border-slate-400 hover:bg-slate-600"
+                className="bg-muted border-slate-400 hover:bg-primary hover:text-white"
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
@@ -129,7 +129,7 @@ export function ConfigPanel({ config, onConfigChange, session }: ConfigPanelProp
               variant="outline"
               size="sm"
               onClick={resetConfig}
-              className="bg-muted border-slate-400 hover:bg-slate-600"
+              className="bg-muted border-slate-400 hover:bg-primary hover:text-white"
             >
               <RotateCcw className="w-3 h-3 mr-2" />
               Reset

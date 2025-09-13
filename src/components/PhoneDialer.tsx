@@ -91,7 +91,7 @@ export function PhoneDialer({ onDial, disabled, isSessionActive = false }: Phone
               <Button
                 key={key}
                 variant="outline"
-                className="h-12 bg-secondary border-slate-400  hover:bg-slate-600 font-semibold text-lg"
+                className="h-12 bg-secondary hover:bg-primary hover:text-white border-slate-400 font-semibold text-lg"
                 onClick={() => handleKeyPress(key)}
                 disabled={isLoading}
               >
