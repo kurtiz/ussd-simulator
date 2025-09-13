@@ -113,7 +113,7 @@ export function PhoneDialer({ onDial, disabled, isSessionActive = false }: Phone
           </Button>
           <Button
             variant="outline"
-            className="h-12 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+            className="h-12 bg-slate-700 border-slate-600 text-white hover:text-white hover:bg-slate-600"
             onClick={() => handleKeyPress('clear')}
             disabled={isLoading}
           >
