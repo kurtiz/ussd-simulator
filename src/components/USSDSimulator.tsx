@@ -5,10 +5,28 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { History, Trash2, Clock, Search } from 'lucide-react';
-import { useIndexedDB } from '../hooks/useIndexedDB';
 import { format } from 'date-fns';
 import { USSDDisplay } from './USSDDisplay';
 import { Input } from './ui/input';
+import Dexie from 'dexie';
+
+// Create a Dexie instance with proper typing
+class USSDSimulatorDatabase extends Dexie {
+  sessions: Dexie.Table<USSDSession, string>;
+
+  constructor() {
+    super('USSDSimulatorDB');
+    
+    this.version(1).stores({
+      sessions: 'id, messages, isActive, startTime, updatedAt, phoneNumber, networkCode',
+    });
+    
+    // Initialize the sessions table with proper typing
+    this.sessions = this.table('sessions');
+  }
+}
+
+const db = new USSDSimulatorDatabase();
 
 export interface USSDConfig {
   endpoint: string;
@@ -51,47 +69,39 @@ export function USSDSimulator() {
   const [sessions, setSessions] = useState<USSDSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
-  const { saveSession, getAllSessions, deleteSession, error: dbHookError } = useIndexedDB();
 
-  // Handle database errors and initial load
+  // Load sessions on component mount
   useEffect(() => {
     const initializeSessions = async () => {
-      if (dbHookError) {
-        setDbError('Failed to initialize database. Session history will not be saved.');
-        console.error('Database error:', dbHookError);
-      } else {
-        // Load sessions on initial mount
+      try {
+        // Load sessions but don't set current session
         await loadSessions();
+        // Ensure we start with a fresh session
+        setCurrentSession(null);
+      } catch (error) {
+        setDbError('Failed to initialize database. Session history will not be saved.');
+        console.error('Database error:', error);
       }
     };
     
     initializeSessions();
-  }, [dbHookError]);
+  }, []);
 
-  const loadSessions = async (setCurrent = true) => {
-    if (isLoading) return []; // Prevent multiple simultaneous loads
+  const loadSessions = async () => {
+    if (isLoading) return [];
     
     setIsLoading(true);
     try {
-      const savedSessions = await getAllSessions().catch(err => {
-        console.error('Error loading sessions:', err);
-        return [];
-      });
+      const savedSessions = await db.sessions.toArray();
       
       // Sort sessions by updatedAt (newest first)
-      const sortedSessions = (savedSessions || []).sort((a, b) => 
-        new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
-      );
+      const sortedSessions = (savedSessions || []).sort((a, b) => {
+        const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return timeB - timeA;
+      });
       
       setSessions(sortedSessions);
-      
-      // If we should set the current session and there isn't one already set
-      if (setCurrent && !currentSession && sortedSessions.length > 0) {
-        // Try to find an active session first, otherwise use the most recent
-        const activeSession = sortedSessions.find(s => s.isActive) || sortedSessions[0];
-        setCurrentSession(activeSession);
-      }
-      
       return sortedSessions;
     } catch (error) {
       console.error('Failed to load sessions:', error);
@@ -142,7 +152,7 @@ export function USSDSimulator() {
       updatedAt: new Date()
     };
     setCurrentSession(updatedSession);
-    await saveSession(updatedSession);
+    await db.sessions.put(updatedSession);
 
     try {
       // Prepare the request payload according to the expected format
@@ -188,7 +198,7 @@ export function USSDSimulator() {
 
       // Update both state and database
       setCurrentSession(updatedSessionWithResponse);
-      await saveSession(updatedSessionWithResponse);
+      await db.sessions.put(updatedSessionWithResponse);
       
       // Reload sessions to ensure UI is up to date
       await loadSessions();
@@ -217,7 +227,7 @@ export function USSDSimulator() {
       };
 
       setCurrentSession(updatedSessionWithError);
-      await saveSession(updatedSessionWithError);
+      await db.sessions.put(updatedSessionWithError);
     } finally {
       setIsLoading(false);
     }
@@ -250,7 +260,7 @@ export function USSDSimulator() {
       };
       
       setCurrentSession(updatedSession);
-      await saveSession(updatedSession);
+      await db.sessions.put(updatedSession);
       await loadSessions();
     } catch (error) {
       console.error('Failed to end session:', error);
@@ -266,7 +276,7 @@ export function USSDSimulator() {
     if (!currentSession) return;
     
     try {
-      await deleteSession(currentSession.id);
+      await db.sessions.delete(currentSession.id);
       setCurrentSession(null);
       await loadSessions();
     } catch (error) {
@@ -277,7 +287,7 @@ export function USSDSimulator() {
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await deleteSession(sessionId);
+      await db.sessions.delete(sessionId);
       if (currentSession?.id === sessionId) {
         setCurrentSession(null);
       }

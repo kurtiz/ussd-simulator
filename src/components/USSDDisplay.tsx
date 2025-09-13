@@ -77,7 +77,7 @@ export function USSDDisplay({ session, isLoading, onEndSession, onClearSession, 
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-muted rounded-lg border border-slate-600 h-80">
+        <div className="bg-muted rounded-lg border border-slate-600 h-100">
           {!session ? (
             <div className="flex items-center justify-center h-full">
               <div className="flex items-center justify-center h-full">
@@ -89,7 +89,7 @@ export function USSDDisplay({ session, isLoading, onEndSession, onClearSession, 
               </div>
             </div>
           ) : (
-            <ScrollArea className="h-full p-4">
+            <ScrollArea className="h-100 p-4">
               <div className="space-y-3">
                 {/* Session info */}
                 <div className="flex items-center justify-between text-xs mb-4 pb-2 border-b border-slate-700">
