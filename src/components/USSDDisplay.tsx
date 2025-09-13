@@ -12,9 +12,10 @@ interface USSDDisplayProps {
   isLoading: boolean;
   onEndSession: () => void;
   onClearSession: () => void;
+  onNewSession: () => void;
 }
 
-export function USSDDisplay({ session, isLoading, onEndSession, onClearSession }: USSDDisplayProps) {
+export function USSDDisplay({ session, isLoading, onEndSession, onClearSession, onNewSession }: USSDDisplayProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -42,25 +43,36 @@ export function USSDDisplay({ session, isLoading, onEndSession, onClearSession }
                 {session.isActive ? 'Active' : 'Ended'}
               </Badge>
             )}
-            {session && (
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
+            <div className="flex gap-1">
+              {session && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onEndSession}
+                    disabled={!session?.isActive}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+
+                  <Button
+                  variant="default"
                   size="sm"
-                  onClick={onEndSession}
-                  disabled={!session.isActive}
+                  onClick={onNewSession}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  <X className="w-3 h-3" />
+                  Start New Session
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onClearSession}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onClearSession}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -68,10 +80,12 @@ export function USSDDisplay({ session, isLoading, onEndSession, onClearSession }
         <div className="bg-muted rounded-lg border border-slate-600 h-80">
           {!session ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Monitor className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No active session</p>
-                <p className="text-sm">Dial a USSD code to start</p>
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Monitor className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No active session</p>
+                  <p className="text-sm text-muted-foreground">Dial a USSD code to start</p>
+                </div>
               </div>
             </div>
           ) : (

@@ -8,6 +8,7 @@ import { History, Trash2, Clock, Search } from 'lucide-react';
 import { useIndexedDB } from '../hooks/useIndexedDB';
 import { format } from 'date-fns';
 import { USSDDisplay } from './USSDDisplay';
+import { Input } from './ui/input';
 
 export interface USSDConfig {
   endpoint: string;
@@ -52,15 +53,25 @@ export function USSDSimulator() {
   const [dbError, setDbError] = useState<string | null>(null);
   const { saveSession, getAllSessions, deleteSession, error: dbHookError } = useIndexedDB();
 
-  // Handle database errors
+  // Handle database errors and initial load
   useEffect(() => {
-    if (dbHookError) {
-      setDbError('Failed to initialize database. Session history will not be saved.');
-      console.error('Database error:', dbHookError);
-    }
+    const initializeSessions = async () => {
+      if (dbHookError) {
+        setDbError('Failed to initialize database. Session history will not be saved.');
+        console.error('Database error:', dbHookError);
+      } else {
+        // Load sessions on initial mount
+        await loadSessions();
+      }
+    };
+    
+    initializeSessions();
   }, [dbHookError]);
 
   const loadSessions = async (setCurrent = true) => {
+    if (isLoading) return []; // Prevent multiple simultaneous loads
+    
+    setIsLoading(true);
     try {
       const savedSessions = await getAllSessions().catch(err => {
         console.error('Error loading sessions:', err);
@@ -86,15 +97,10 @@ export function USSDSimulator() {
       console.error('Failed to load sessions:', error);
       setDbError('Failed to load session history. Please refresh the page to try again.');
       return [];
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    // Only try to load sessions if we don't have a database error
-    if (!dbHookError) {
-      loadSessions();
-    }
-  }, [dbHookError]);
 
   const handleUSSDRequest = async (input: string) => {
     if (!config.endpoint) {
@@ -223,6 +229,16 @@ export function USSDSimulator() {
     setShowHistory(false);
   };
 
+  const toggleHistory = async () => {
+    const willShowHistory = !showHistory;
+    setShowHistory(willShowHistory);
+    
+    if (willShowHistory) {
+      // If we're showing the history, refresh the sessions
+      await loadSessions(false); // Don't set current session when loading for history panel
+    }
+  };
+
   const handleEndSession = async () => {
     if (!currentSession) return;
     
@@ -239,6 +255,11 @@ export function USSDSimulator() {
     } catch (error) {
       console.error('Failed to end session:', error);
     }
+  };
+
+  const handleNewSession = () => {
+    // Clear the current session to show the dialer
+    setCurrentSession(null);
   };
 
   const handleClearSession = async () => {
@@ -280,22 +301,21 @@ export function USSDSimulator() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={toggleHistory}
             className="flex items-center gap-1"
           >
             <History className="w-4 h-4" />
             {showHistory ? 'Hide History' : 'Show History'}
           </Button>
         </div>
-
         {showHistory ? (
           <Card className="flex-1 p-4 overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <Search className="w-4 h-4 text-muted-foreground" />
-              <input
+              <Input
                 type="text"
                 placeholder="Search sessions..."
-                className="flex-1 bg-transparent border-none outline-none text-sm"
+                className="flex-1 bg-transparent border-muted outline-none text-sm"
               />
             </div>
             <ScrollArea className="h-[calc(100%-40px)] pr-2">
@@ -363,6 +383,7 @@ export function USSDSimulator() {
           isLoading={isLoading}
           onEndSession={handleEndSession}
           onClearSession={handleClearSession}
+          onNewSession={handleNewSession}
         />
       </div>
 
