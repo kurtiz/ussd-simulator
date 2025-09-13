@@ -60,16 +60,32 @@ export function USSDSimulator() {
     }
   }, [dbHookError]);
 
-  const loadSessions = async () => {
+  const loadSessions = async (setCurrent = true) => {
     try {
       const savedSessions = await getAllSessions().catch(err => {
         console.error('Error loading sessions:', err);
         return [];
       });
-      setSessions(savedSessions || []);
+      
+      // Sort sessions by updatedAt (newest first)
+      const sortedSessions = (savedSessions || []).sort((a, b) => 
+        new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+      );
+      
+      setSessions(sortedSessions);
+      
+      // If we should set the current session and there isn't one already set
+      if (setCurrent && !currentSession && sortedSessions.length > 0) {
+        // Try to find an active session first, otherwise use the most recent
+        const activeSession = sortedSessions.find(s => s.isActive) || sortedSessions[0];
+        setCurrentSession(activeSession);
+      }
+      
+      return sortedSessions;
     } catch (error) {
       console.error('Failed to load sessions:', error);
       setDbError('Failed to load session history. Please refresh the page to try again.');
+      return [];
     }
   };
 
