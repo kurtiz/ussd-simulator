@@ -87,7 +87,7 @@ export function USSDSimulator() {
     initializeSessions();
   }, []);
 
-  const loadSessions = async () => {
+  const loadSessions = async (setCurrent: boolean = true) => {
     if (isLoading) return [];
     
     setIsLoading(true);
@@ -102,6 +102,13 @@ export function USSDSimulator() {
       });
       
       setSessions(sortedSessions);
+      
+      // Set the most recent active session as current if setCurrent is true and there are sessions
+      if (setCurrent && sortedSessions.length > 0) {
+        const activeSession = sortedSessions.find(session => session.isActive) || sortedSessions[0];
+        setCurrentSession(activeSession);
+      }
+      
       return sortedSessions;
     } catch (error) {
       console.error('Failed to load sessions:', error);
